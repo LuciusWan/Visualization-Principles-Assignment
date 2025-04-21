@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>多边形迭代至椭圆可视化</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --secondary-color: #2196F3;
+            --background-color: #f9f9f9;
+            --panel-color: #ffffff;
+            --text-color: #333333;
+            --border-radius: 8px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+            text-align: center;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        canvas {
+            border: 1px solid #e0e0e0;
+            margin-top: 20px;
+            box-shadow: var(--shadow);
+            background-color: white;
+            transition: box-shadow 0.3s ease;
+        }
+
+        canvas:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 15px;
+            background-color: var(--panel-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            width: 800px;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            transition: all 0.3s ease;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            background-color: #3d8b40;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button#normalize {
+            background-color: var(--secondary-color);
+        }
+
+        button#normalize:hover {
+            background-color: #0b7dda;
+        }
+
+        .info-panel {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: var(--panel-color);
+            border-radius: var(--border-radius);
+            width: 800px;
+            box-shadow: var(--shadow);
+        }
+
+        .iteration-info {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .iteration-info::before {
+            content: '';
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .geometric-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            background-color: rgba(76, 175, 80, 0.1);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .info-item:hover {
+            background-color: rgba(76, 175, 80, 0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .status-indicator::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .speed-controls {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .speed-label {
+            font-size: 0.9rem;
+            margin-right: 8px;
+            color: #666;
+            display: flex;
+            align-items: center;
+        }
+
+        .speed-label::after {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--secondary-color);
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>多边形迭代至椭圆可视化</h1>
+    <p class="subtitle">观察多边形通过中点迭代最终收敛为椭圆</p>
+    
+    <div class="controls">
+        <button id="start">开始迭代</button>
+        <button id="pause">暂停</button>
+        <button id="reset">重置</button>
+        <button id="normalize">归一化</button>
+        
+        <div class="speed-controls">
+            <span class="speed-label">速度</span>
+            <button id="speed-down">-</button>
+            <button id="speed-up">+</button>
+        </div>
+    </div>
+    
+    <canvas id="canvas" width="800" height="600"></canvas>
+    
+    <div class="info-panel">
+        <div class="iteration-info">迭代次数: <span id="iteration-count">0</span></div>
+        
+        <div class="geometric-info">
+            <div class="info-item">
+                <div class="info-label">中心点坐标</div>
+                <div class="info-value" id="center-point">计算中...</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">边数</div>
+                <div class="info-value" id="edge-count">计算中...</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">平均边长</div>
+                <div class="info-value" id="avg-edge-length">计算中...</div>
+            </div>
+            
+            <div class="info-item">
+                <div class="info-label">当前形状状态</div>
+                <div class="info-value" id="shape-status">初始多边形</div>
+                <div class="status-indicator"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('start');
+        const pauseBtn = document.getElementById('pause');
+        const resetBtn = document.getElementById('reset');
+        const normalizeBtn = document.getElementById('normalize');
+        const speedDownBtn = document.getElementById('speed-down');
+        const speedUpBtn = document.getElementById('speed-up');
+        const iterationCount = document.getElementById('iteration-count');
+        const centerPoint = document.getElementById('center-point');
+        const edgeCount = document.getElementById('edge-count');
+        const avgEdgeLength = document.getElementById('avg-edge-length');
+        const shapeStatus = document.getElementById('shape-status');
+
+        let polygon = [];
+        let iteration = 0;
+        let isRunning = false;
+        let shouldNormalize = false;
+        let iterationSpeed = 500; // 毫秒，初始速度较慢
+        let animationId = null;
+        let currentStep = 0; // 用于分步骤展示
+
+        // 生成随机多边形
+        function generateRandomPolygon(vertexCount = 8) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) * 0.8;
+            
+            return Array.from({ length: vertexCount }, () => {
+                const angle = Math.random() * 2 * Math.PI;
+                const r = radius * (0.5 + Math.random() * 0.5);
+                return {
+                    x: centerX + r * Math.cos(angle),
+                    y: centerY + r * Math.sin(angle)
+                };
+            });
+        }
+
+        // 绘制多边形
+        function drawPolygon(polygon, color = 'blue', style = 'solid') {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (style === 'dashed') {
+                ctx.setLineDash([5, 5]);
+            } else {
+                ctx.setLineDash([]);
+            }
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            const firstPoint = polygon[0];
+            ctx.moveTo(firstPoint.x, firstPoint.y);
+            
+            for (let i = 1; i < polygon.length; i++) {
+                ctx.lineTo(polygon[i].x, polygon[i].y);
+            }
+            
+            ctx.closePath();
+            ctx.stroke();
+            
+            // 绘制点
+            ctx.fillStyle = color;
+            polygon.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+        }
+
+        // 绘制中点
+        function drawMidpoints(polygon, color = 'red') {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i < polygon.length; i++) {
+                const current = polygon[i];
+                const next = polygon[(i + 1) % polygon.length];
+                const midpoint = {
+                    x: (current.x + next.x) / 2,
+                    y: (current.y + next.y) / 2
+                };
+                
+                // 绘制中点
+                ctx.beginPath();
+                ctx.arc(midpoint.x, midpoint.y, 3, 0, 2 * Math.PI);
+                ctx.fillStyle = color;
+                ctx.fill();
+                
+                // 绘制中点连线
+                ctx.beginPath();
+                ctx.moveTo(current.x, current.y);
+                ctx.lineTo(midpoint.x, midpoint.y);
+                ctx.stroke();
+            }
+        }
+
+        // 计算中点多边形
+        function computeMidpointPolygon(polygon) {
+            const newPolygon = [];
+            
+            for (let i = 0; i < polygon.length; i++) {
+                const current = polygon[i];
+                const next = polygon[(i + 1) % polygon.length];
+                
+                newPolygon.push({
+                    x: (current.x + next.x) / 2,
+                    y: (current.y + next.y) / 2
+                });
+            }
+            
+            return newPolygon;
+        }
+
+        // 归一化多边形
+        function normalizePolygon(polygon) {
+            if (polygon.length < 2) return polygon;
+            
+            // 计算中心点
+            const centerX = polygon.reduce((sum, p) => sum + p.x, 0) / polygon.length;
+            const centerY = polygon.reduce((sum, p) => sum + p.y, 0) / polygon.length;
+            
+            // 计算平均距离
+            const avgDistance = polygon.reduce((sum, p) => {
+                const dx = p.x - centerX;
+                const dy = p.y - centerY;
+                return sum + Math.sqrt(dx * dx + dy * dy);
+            }, 0) / polygon.length;
+            
+            // 缩放到固定半径
+            const targetRadius = Math.min(canvas.width, canvas.height) * 0.4;
+            const scale = targetRadius / avgDistance;
+            
+            return polygon.map(p => ({
+                x: centerX + (p.x - centerX) * scale,
+                y: centerY + (p.y - centerY) * scale
+            }));
+        }
+
+        // 计算几何信息
+        function calculateGeometricInfo(polygon) {
+            if (polygon.length < 1) return;
+            
+            // 计算中心点
+            const centerX = polygon.reduce((sum, p) => sum + p.x, 0) / polygon.length;
+            const centerY = polygon.reduce((sum, p) => sum + p.y, 0) / polygon.length;
+            
+            // 计算平均边长
+            let totalEdgeLength = 0;
+            for (let i = 0; i < polygon.length; i++) {
+                const current = polygon[i];
+                const next = polygon[(i + 1) % polygon.length];
+                const dx = next.x - current.x;
+                const dy = next.y - current.y;
+                totalEdgeLength += Math.sqrt(dx * dx + dy * dy);
+            }
+            const avgLength = totalEdgeLength / polygon.length;
+            
+            // 更新信息面板
+            centerPoint.textContent = `${centerX.toFixed(2)}, ${centerY.toFixed(2)}`;
+            edgeCount.textContent = polygon.length;
+            avgEdgeLength.textContent = avgLength.toFixed(2);
+            
+            // 判断形状状态
+            if (iteration === 0) {
+                shapeStatus.textContent = "初始多边形";
+            } else if (iteration < 5) {
+                shapeStatus.textContent = "迭代中...";
+            } else {
+                shapeStatus.textContent = "接近椭圆";
+            }
+        }
+
+        // 分步骤迭代
+        function stepByStepIteration() {
+            if (!isRunning) return;
+            
+            // 步骤1: 显示原始多边形
+            if (currentStep === 0) {
+                drawPolygon(polygon, 'blue');
+                calculateGeometricInfo(polygon);
+                currentStep = 1;
+            }
+            
+            // 步骤2: 显示中点和连线
+            else if (currentStep === 1) {
+                drawPolygon(polygon, 'blue', 'dashed');
+                drawMidpoints(polygon, 'red');
+                calculateGeometricInfo(polygon);
+                currentStep = 2;
+            }
+            
+            // 步骤3: 计算并显示新多边形
+            else if (currentStep === 2) {
+                const newPolygon = computeMidpointPolygon(polygon);
+                if (shouldNormalize) {
+                    polygon = normalizePolygon(newPolygon);
+                } else {
+                    polygon = newPolygon;
+                }
+                
+                iteration++;
+                iterationCount.textContent = iteration;
+                drawPolygon(polygon, `hsl(${iteration % 360}, 70%, 50%)`);
+                calculateGeometricInfo(polygon);
+                currentStep = 0;
+            }
+            
+            animationId = setTimeout(() => {
+                requestAnimationFrame(stepByStepIteration);
+            }, iterationSpeed);
+        }
+
+        // 初始化
+        function init() {
+            polygon = generateRandomPolygon();
+            iteration = 0;
+            currentStep = 0;
+            iterationCount.textContent = iteration;
+            drawPolygon(polygon, 'blue');
+            calculateGeometricInfo(polygon);
+        }
+
+        // 事件监听
+        startBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                isRunning = true;
+                stepByStepIteration();
+            }
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            isRunning = false;
+            if (animationId) {
+                clearTimeout(animationId);
+                animationId = null;
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            pauseBtn.click();
+            init();
+        });
+
+        normalizeBtn.addEventListener('click', () => {
+            shouldNormalize = !shouldNormalize;
+            normalizeBtn.textContent = shouldNormalize ? '取消归一化' : '归一化';
+        });
+
+        speedDownBtn.addEventListener('click', () => {
+            if (iterationSpeed < 2000) {
+                iterationSpeed += 100;
+            }
+        });
+
+        speedUpBtn.addEventListener('click', () => {
+            if (iterationSpeed > 100) {
+                iterationSpeed -= 100;
+            }
+        });
+
+        // 启动
+        init();
+        // 保持核心逻辑不变，仅优化UI
+        // ...（核心逻辑代码保持不变）
+    </script>
+</body>
+</html>
